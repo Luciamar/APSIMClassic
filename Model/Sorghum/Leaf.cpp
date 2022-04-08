@@ -39,7 +39,7 @@ void Leaf::doRegistrations(void)
    scienceAPI.expose("TPLA",           "m2",    "Total plant leaf area",           false, tpla);
    scienceAPI.expose("SPLA",           "m2",    "Senesced plant leaf area",        false, spla);
    scienceAPI.expose("GPLA",           "m2",    "Green plant leaf area",           false, spla);
-   scienceAPI.expose("LeafNo",         "leaves","Number of fully expanded leaves", false, nLeaves);
+   scienceAPI.expose("LeafNo",         "leaves","Number of fully expanded leaves", true, nLeaves);
    scienceAPI.expose("LeafGreenWt",    "g/m^2", "Live leaf dry weight",            false, dmGreen);
    scienceAPI.expose("LeafSenescedWt", "g/m^2", "Senesced leaf dry weight",        false, dmSenesced);
    scienceAPI.expose("MaxLAI",         "m2/m2", "Maximum LAI reached",             false, maxLai);
@@ -54,6 +54,7 @@ void Leaf::doRegistrations(void)
    scienceAPI.expose("DeltaLeafNo",    "lvs/d", "Fraction of oldest leaf expanded",false, dltLeafNo);
    scienceAPI.expose("ExtinctionCoef", "()",    "Light Extinction coefficient",    false, extinctionCoef);
    scienceAPI.expose("LeafGreenP",     "g/m^2" ,"P in live leaf",                  false, pGreen);
+
    }
 //------------------------------------------------------------------------------------------------
 //------- Initialize variables
@@ -80,6 +81,7 @@ void Leaf::initialize(void)
    finalLeafNo = 0.0;
    dltLeafNo   = 0.0;
    nLeaves     = 0.0;
+
 
    leafNo.assign (nStages,0.0);
    nodeNo.assign (nStages,0.0);
@@ -177,8 +179,26 @@ void Leaf::updateVars(void)
    {
    int iStage = (int)stage;
 
-   // leaf number
-   leafNo[iStage] += dltLeafNo;
+
+  
+
+
+   leafNo[iStage] += (dltLeafNo);
+   if (nLeaves < 0) {
+	   double old_leaves = sumVector(leafNo);
+	   double new_leaves = old_leaves + nLeaves;
+	   double old_lai = lai;
+	   double new_lai = lai * (new_leaves / old_leaves);
+	   
+	   double laiToday = old_lai + dltLAI;
+	   double dmGreenLeafToday = dmGreen + dltDmGreen + dmRetranslocate;   // -ve
+	   double slaToday = divide(laiToday, dmGreenLeafToday);
+	   double lost = divide((old_lai-new_lai), slaToday);
+	   dltDmGreen -= lost;
+	   lai = new_lai;
+	   leafNo[iStage] += nLeaves;
+   }
+   
    nLeaves = sumVector(leafNo);
 
    // Dry matter
@@ -196,6 +216,7 @@ void Leaf::updateVars(void)
 
    // leaf area
    if(lai < 0.001)lai = 0.0;
+
    lai += dltLAI;
 
    sLai += dltSlai;
@@ -353,7 +374,6 @@ double Leaf::calcLaiSenescenceFrost(void)
          scienceAPI.write(msg);
          sprintf(msg, "\t\tMin Temp      = %.2f \t\t Senesced LAI    = %.2f\n", plant->today.minT, lai - 0.01);
          scienceAPI.write(msg);
-
          senescedLAI =  Max(0.0,lai - 0.1);
          }
       else if(stage > flowering)
@@ -378,7 +398,7 @@ double Leaf::calcLaiSenescenceFrost(void)
          //the plant will be killed as it's LAI will be 0
          senescedLAI = lai;
       }
-      
+      ////add senecense
       return senescedLAI;
    }
    /* TODO : put in messages */
@@ -614,7 +634,7 @@ void Leaf::calcLeafAppearance(void)
    // if leaves are still growing, the cumulative number of phyllochrons or fully expanded
    // leaves is calculated from thermal time for the day.
    dltLeafNo = bound(divide(plant->phenology->getDltTT(),leafAppRate),0.0,remainingLeaves);
-	
+   if (stage >= flowering) { dltLeafNo = 0; }
 	}
 //------------------------------------------------------------------------------------------------
 //-----------  Leaf area

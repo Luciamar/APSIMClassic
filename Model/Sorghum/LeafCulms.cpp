@@ -271,6 +271,7 @@ void LeafCulms::calcLeafNo(void)
 		double currentLeafNo = Culms[0]->getCurrentLeafNo();
 		double dltLeafNoMainCulm = Culms[0]->calcLeafAppearance();
 		dltLeafNo = dltLeafNoMainCulm; //updates nLeaves
+		if (stage >= flowering) { dltLeafNo = 0; };
 		double newLeafNo = Culms[0]->getCurrentLeafNo();
 
 		calcTillerNumber((int)floor(newLeafNo), (int)floor(currentLeafNo));
@@ -510,8 +511,9 @@ void LeafCulms_Fixed::calcLeafNo(void)
 		double currentLeafNo = Culms[0]->getCurrentLeafNo();
 		double dltLeafNoMainCulm = Culms[0]->calcLeafAppearance();
 		dltLeafNo = dltLeafNoMainCulm; //updates nLeaves
+		if (stage >= flowering) { dltLeafNo = 0; };
 		double newLeafNo = Culms[0]->getCurrentLeafNo();
-
+		
 		calcTillerAppearance((int)floor(newLeafNo), (int)floor(currentLeafNo));
 
 		for (int i = 1; i < (int)Culms.size(); ++i)
@@ -689,13 +691,15 @@ void Culm::updateVars(void)
 //--------------------------------------------------------------------------------------------------
 void Culm::doRegistrations(void)
 {
-	scienceAPI.expose("CurrentLeaf", "", "Current Leaf", false, currentLeafNo);
+	scienceAPI.expose("CurrentLeaf", "", "Current Leaf", true, currentLeafNo);
+
 }
 
 void Culm::calcFinalLeafNo(void)
 {
 	double ttFi = plant->phenology->sumTTtarget(emergence, fi);
 	finalLeafNo = bound(divide(ttFi, initRate) + noSeed, minLeafNo, maxLeafNo);
+
 }
 
 void Culm::setVertLeafAdj(double adj) { vertAdjValue = adj; }
@@ -735,8 +739,8 @@ double Culm::calcLeafAppearance(void)
 
 	// if leaves are still growing, the cumulative number of phyllochrons or fully expanded
 	// leaves is calculated from thermal time for the day.
-	dltLeafNo = bound(divide(plant->phenology->getDltTT(), leafAppRate), 0.0, remainingLeaves);
 
+	dltLeafNo = bound(divide(plant->phenology->getDltTT(), leafAppRate), 0.0, remainingLeaves);
 	currentLeafNo = currentLeafNo + dltLeafNo;
 	return dltLeafNo;
 }

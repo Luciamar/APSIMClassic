@@ -68,6 +68,7 @@ namespace Sorghum {
 			double dltLeafNo;
 			double nLeaves;
 
+
 			// LAI
 			double lai;
 			double dltPotentialLAI;
